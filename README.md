@@ -1,5 +1,5 @@
 Version 1
-
+En esta versión comenzamos con el proyecto, creamos funciones para añadir aeropuertos, eliminar y generar graficas donde se representan los aeropuertos de la zona schenguen. Tambien utilizamos el google earth para mostrar la posición de los diferentes aeropuertos
 
 
 
@@ -11,4 +11,4 @@ google earth la trayectoria de los diferentes aviones, de esta forma tenemos una
 
 En esta versión hemos solucionado los diferentes errores que habiamos tenido en la versión 1 y hemos completado la versión 1
 
-https://drive.google.com/file/d/1iAUeCCFDeyarxPJS-w-hkKSCKPlO7FV0/view?usp=sharing
+https://drive.google.com/file/d/1_1NnhsiDWoHNe3UxqxDXtQNqf1nmcWZ8/view?usp=sharing
