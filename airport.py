@@ -78,13 +78,13 @@ def LoadAirports(filename):
 
 
 def SaveSchengenAirports(airports, filename):
-    if len(airports) == 0:
+    if len(airports) == 0:# si no hay aeropuertos devolvemos un error
         return " Error, no hay nafda"
 
     f = open(filename, 'w')
     f.write("CODE LAT LON")
 
-    for a in airports:
+    for a in airports:# recorremos los aeropuertos y buscamos los que sean de la zona schenguen
         if a.schengen == True:
             linea = a.ICAO + " " + str(a.latitude) + " " + str(a.longitude) + "\n"
             f.write(linea)
@@ -98,7 +98,7 @@ def AddAirport(airports, new_airport):
 
     while i < num_airports and not encontrado:
         if airports[i].ICAO == new_airport.ICAO:
-            encontrado = True
+            encontrado = True# si encontramos el aeropuerto, significa que ya esta en la lista. No lo añadimos
         else:
             i = i + 1
 
@@ -195,3 +195,5 @@ def MapAirports(airports, filename="airports.kml"):
     f.write('</kml>\n')
     f.close()
     print(f"Archivo {filename} generado. Ábrelo con Google Earth.")
+
+
