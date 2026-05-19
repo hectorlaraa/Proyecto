@@ -310,5 +310,85 @@ def AssignGate(bcn, aircraft):
     # Si termina todo y no encontró hueco
     print("Error: No hay puertas libres de ese tipo")
     return -1
+def PlotAirportSchematic(bcn, ax, terminal_filter=""):
+    # Limpiamos el gráfico y ocultamos los ejes numéricos
+    ax.clear()
+    ax.axis('off')
 
+    y_offset = 0  # Controla la altura a la que se dibuja cada terminal
+
+    # Recorremos las terminales con un bucle while básico
+    i = 0
+    cantidad_terminales = len(bcn.terminals)
+
+    while i < cantidad_terminales:
+        terminal = bcn.terminals[i]
+
+        # Cambiamos el NONE: Si el filtro es un texto vacío, o si el nombre coincide con el filtro...
+        if terminal_filter == "" or terminal.name == terminal_filter:
+
+            # 1. Dibujar la línea principal del Terminal (Tronco horizontal)
+            ax.plot([0, max(len(terminal.boarding) * 2, 2)], [y_offset, y_offset], lw=6, color="#54217E")
+            ax.text(-0.5, y_offset, terminal.name, fontsize=12, fontweight='bold', va='center')
+
+            # Recorremos las áreas con un while básico
+            a_idx = 0
+            cantidad_areas = len(terminal.boarding)
+
+            while a_idx < cantidad_areas:
+                area = terminal.boarding[a_idx]
+
+                x_area = a_idx * 2 + 1
+                num_gates = len(area.gates)
+                y_bottom = y_offset - (num_gates * 0.5) - 0.5
+
+                # 2. Dibujar el pilar del Área de Embarque (Tronco vertical)
+                ax.plot([x_area, x_area], [y_offset, y_bottom], lw=4, color="#54217E")
+                ax.text(x_area, y_bottom - 0.5, area.name, fontsize=10, ha='center', fontweight='bold')
+
+                # Recorremos las puertas con un while básico
+                g_idx = 0
+                cantidad_puertas = len(area.gates)
+
+                while g_idx < cantidad_puertas:
+                    gate = area.gates[g_idx]
+
+                    y_gate = y_offset - (g_idx + 1) * 0.5
+
+                    # 3. Dibujar la "rama" de la puerta
+                    ax.plot([x_area, x_area + 0.5], [y_gate, y_gate], lw=2, color="#54217E")
+
+                    # Etiqueta de la puerta
+                    ax.text(x_area + 0.25, y_gate + 0.1, gate.name, fontsize=6, ha='center')
+
+                    color = "#ff0000" if gate.ocupado else "#00ff00"
+                    ax.plot([x_area + 0.55, x_area + 0.75], [y_gate, y_gate], lw=2, color=color)
+
+                    if gate.ocupado and gate.aircraft != "":
+                        ax.text(x_area - 0.2, y_gate, gate.aircraft.aircraft, fontsize=8, color='red', ha='right',
+                                va='center')
+
+                    # Avanzamos a la siguiente puerta
+                    g_idx += 1
+
+                # Avanzamos a la siguiente área
+                a_idx += 1
+
+            # Calculamos el espacio para la siguiente terminal de forma manual y simple
+            if len(terminal.boarding) > 0:
+                # Buscamos el máximo de puertas a mano para evitar funciones complejas
+                max_gates = 0
+                m = 0
+                while m < len(terminal.boarding):
+                    if len(terminal.boarding[m].gates) > max_gates:
+                        max_gates = len(terminal.boarding[m].gates)
+                    m += 1
+                y_offset -= (max_gates * 0.5 + 3)
+            else:
+                y_offset -= 3
+
+        # Avanzamos a la siguiente terminal
+        i += 1
+
+    ax.autoscale_view()
 
