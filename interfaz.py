@@ -107,6 +107,78 @@ def PlotFlightsType():
     draw_chart()
 
 
+# Nueva lista global para guardar temporalmente las salidas antes de fusionar
+departures = []
+
+
+def LoadDeparturesData():
+    '''Carga el archivo de salidas (departures) en la lista global departures'''
+    departures.clear()
+
+    # IMPORTANTE: Aquí asumo que crearás un nuevo Entry en tu interfaz
+    # para escribir el nombre del archivo de salidas. Lo he llamado 'departurePathEntry'.
+    # Si vas a usar el mismo 'flightPathEntry', cámbialo en la línea de abajo.
+    filename = flightPathEntry.get()
+
+    lista_salidas, error_code = ac.LoadDepartures(filename)
+
+    if error_code == -1:
+        messagebox.showerror(title="Carga de Salidas",
+                             message="Error al cargar el archivo de salidas. Comprueba que el archivo existe.")
+    else:
+        departures.extend(lista_salidas)
+        messagebox.showinfo(title="Carga de Salidas", message=f"¡{len(departures)} salidas cargadas correctamente!")
+
+
+def MergeFlightsData():
+    '''Fusiona la lista actual de llegadas (aircrafts) con la de salidas (departures)'''
+    global aircrafts  # Indicamos que vamos a modificar la lista global principal
+
+    if not aircrafts:
+        messagebox.showwarning(title="Aviso", message="Primero debes cargar las llegadas.")
+        return
+    if not departures:
+        messagebox.showwarning(title="Aviso", message="Primero debes cargar las salidas.")
+        return
+
+    lista_fusionada, error_code = ac.MergeMovements(aircrafts, departures)
+
+    if error_code == 0:
+        # Reemplazamos la lista principal de vuelos con la lista fusionada
+        aircrafts.clear()
+        aircrafts.extend(lista_fusionada)
+        messagebox.showinfo(title="Fusión de Vuelos",
+                            message="¡Llegadas y salidas fusionadas correctamente en la estructura principal!")
+    else:
+        messagebox.showerror(title="Error", message="Error al intentar fusionar las listas.")
+
+
+def ShowNightAircrafts():
+    '''Busca los aviones nocturnos y los muestra en una ventana emergente'''
+    if not aircrafts:
+        messagebox.showwarning(title="Aviso", message="No hay vuelos cargados. Primero carga y fusiona los archivos.")
+        return
+
+    night_list, error_code = ac.NightAircraft(aircrafts)
+
+    if error_code == -1:
+        messagebox.showerror(title="Error", message="Hubo un problema al procesar los aviones nocturnos.")
+    elif len(night_list) == 0:
+        messagebox.showinfo(title="Aviones Nocturnos", message="No se encontraron aviones que pasen la noche.")
+    else:
+        # Preparamos un texto para mostrar en el messagebox
+        info = f"Se han encontrado {len(night_list)} aviones que pasan la noche:\n\n"
+
+        # Mostramos los primeros 10 para no colapsar la pantalla si hay muchos
+        for a in night_list[:10]:
+            info += f"Avión: {a.aircraft} | Destino: {a.destination} | Salida: {a.departure}\n"
+
+        if len(night_list) > 10:
+            info += f"...\n(Y {len(night_list) - 10} aviones más)"
+
+        messagebox.showinfo(title="Aviones Nocturnos", message=info)
+
+
 def SaveFlights():
     if not aircrafts:
         print("No hay vuelos para guardar.")
@@ -440,7 +512,27 @@ Button(scrollable_frame, text="Map T1", bg="#F472B6", fg="white", command=MapT1)
 Button(scrollable_frame, text="Map T2", bg="#F472B6", fg="white", command=MapT2).grid(row=29, column=0, columnspan=2,
                                                                                       padx=5, pady=3, sticky=E + W)
 # Un recuadro en el que muestre si se ejecuta una función correctamente o no.
+# ---------------------------------------------------------
+# NUEVA SECCIÓN: DEPARTURES & MERGE (A partir de la row 30)
+# ---------------------------------------------------------
 
+# Título de la sección
+Label(scrollable_frame, text="DEPARTURES", font=("Times New Roman", 18, "bold")).grid(row=30, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+
+# Etiqueta y recuadro de texto para el archivo de salidas
+departureArchivoLabel = Label(scrollable_frame, text="Archivo Salidas:")
+departureArchivoLabel.grid(row=31, column=0, padx=5, pady=5, sticky=E + W)
+
+departurePathEntry = Entry(scrollable_frame, width=12)
+departurePathEntry.insert(index=0, string="departures.txt") # Nombre por defecto del archivo
+departurePathEntry.grid(row=31, column=1, padx=5, pady=5, sticky=E + W)
+
+# Botones con el mismo estilo que los demás (#F472B6)
+Button(scrollable_frame, text="Load Departures", bg="#F472B6", fg="white", command=LoadDeparturesData).grid(row=32, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+
+Button(scrollable_frame, text="Merge Movements", bg="#F472B6", fg="white", command=MergeFlightsData).grid(row=33, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+
+Button(scrollable_frame, text="Night Aircrafts", bg="#F472B6", fg="white", command=ShowNightAircrafts).grid(row=34, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
 
 # Para mostrar los gráficos en la misma ventana
 canvas = FigureCanvasTkAgg(fig, master=right_panel)

@@ -4,11 +4,13 @@ import math
 from airport import LoadAirports
 
 class Aircraft:
-    def __init__(self, aircraft, origin, arrival, airline):
+    def __init__(self, aircraft, origin=None, arrival=None, airline=None, destination=None, departure=None):
         self.aircraft = aircraft
         self.origin = origin
         self.arrival = arrival
         self.airline = airline
+        self.destination = destination
+        self.departure = departure
 
 def LoadArrivals (filename):
     arrivals = []
@@ -125,6 +127,9 @@ def MapFlights(aircrafts, filename="flights.kml"):
     f.close()
 
 
+
+
+
 def LongDistanceArrivals(aircrafts):
     if not aircrafts:
         print("No aircrafts found")
@@ -151,3 +156,107 @@ def LongDistanceArrivals(aircrafts):
     return result
 
 
+def LoadDepartures(filename):
+    '''
+    This function opens the file with name received as input, that contains
+    the information about departures, and returns a list of aircraft initialized
+    with the data found in the file.
+    '''
+    departures = []
+    try:
+        file = open(filename, 'r')
+        lines = file.readlines()
+        file.close()
+
+        # Iteramos desde 1 para saltar la cabecera (primera línea)
+        for i in range(1, len(lines)):
+            parts = lines[i].split()
+            if len(parts) == 4:
+                aircraft = parts[0]
+                destination = parts[1]
+                departure = parts[2]
+                airline = parts[3]
+
+                # Inicializamos solo los campos de salidas. origin y arrival quedan como None.
+                departures.append(
+                    Aircraft(aircraft, origin=None, arrival=None, airline=airline, destination=destination,
+                             departure=departure))
+    except FileNotFoundError:
+        print("File not found")
+        # Devuelve lista vacía y código de error (-1)
+        return [], -1
+
+    # Devuelve la lista y un código de éxito (0)
+    return departures, 0
+
+
+def time_to_minutes(time_str):
+    """Función auxiliar para convertir 'hh:mm' a minutos enteros."""
+    if not time_str: return 0
+    h, m = map(int, time_str.split(':'))
+    return h * 60 + m
+
+
+def MergeMovements(arrivals, departures):
+    '''
+    Receives two lists of aircraft (arrivals and departures) and returns a new list
+    where compatible times are merged into the same Aircraft structure.
+    '''
+    if not arrivals or not departures:
+        return [], -1  # Código de error si alguna lista está vacía
+
+    merged_list = []
+    used_arrivals = set()  # Para no reutilizar la misma llegada dos veces
+
+    # Clonamos y ordenamos cronológicamente para asegurar emparejamientos lógicos
+    arr_sorted = sorted(arrivals, key=lambda a: time_to_minutes(a.arrival))
+    dep_sorted = sorted(departures, key=lambda d: time_to_minutes(d.departure))
+
+    for dep in dep_sorted:
+        matched_arr = None
+        for arr in arr_sorted:
+            # Buscamos que coincida el ID, que la llegada no se haya fusionado ya,
+            # y que la llegada sea ANTERIOR a la salida.
+            if arr not in used_arrivals and arr.aircraft == dep.aircraft:
+                if time_to_minutes(arr.arrival) < time_to_minutes(dep.departure):
+                    matched_arr = arr
+                    break  # Encontramos la llegada correspondiente a esta salida
+
+        if matched_arr:
+            # Fusionamos los datos en una nueva estructura Aircraft
+            merged_aircraft = Aircraft(
+                aircraft=dep.aircraft,
+                origin=matched_arr.origin,
+                arrival=matched_arr.arrival,
+                airline=dep.airline,
+                destination=dep.destination,
+                departure=dep.departure
+            )
+            merged_list.append(merged_aircraft)
+            used_arrivals.add(matched_arr)  # Marcamos la llegada como utilizada
+        else:
+            # Si no hay llegada previa compatible, es un avión que pasó la noche (night aircraft)
+            merged_list.append(dep)
+
+    # Finalmente, añadimos los aviones que llegaron pero no han despegado aún
+    for arr in arr_sorted:
+        if arr not in used_arrivals:
+            merged_list.append(arr)
+
+    return merged_list, 0
+
+
+def NightAircraft(aircrafts):
+    '''
+
+    '''
+    if not aircrafts:
+        return [], -1  # Código de error si la lista está vacía
+
+    night_list = []
+    for a in aircrafts:
+        # Si origin/arrival es None pero destination/departure tiene datos
+        if a.arrival is None and a.departure is not None:
+            night_list.append(a)
+
+    return night_list, 0
