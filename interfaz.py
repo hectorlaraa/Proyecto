@@ -10,7 +10,7 @@ import LEBL as lb
 
 # Lista global de aeropuertos
 airports = []
-
+bcn = None
 
 # Funciones para los botones
 def Load():
@@ -181,13 +181,15 @@ def ShowNightAircrafts():
 
 def SaveFlights():
     if not aircrafts:
-        print("No hay vuelos para guardar.")
+        messagebox.showwarning(title="Aviso", message="No hay vuelos para guardar.")
+        return  # <-- Añade este return para que se detenga aquí si está vacío
+
     resultado = ac.SaveFlights(aircrafts, "ArrivalsFlights.txt")
 
     if resultado == 0:
-        messagebox.showinfo("Guardar Vuelos", "¡Vuelos guardados en 'ArrivalsFlights.txt'!")
+        messagebox.showinfo(title="Guardar Vuelos", message="¡Vuelos guardados en 'ArrivalsFlights.txt'!")
     else:
-        messagebox.showerror("Guardar Vuelos", "Error al guardar o la lista estaba vacía.")
+        messagebox.showerror(title="Guardar Vuelos", message="Error al guardar o la lista estaba vacía.")
 
 
 def MapFlights():
@@ -214,14 +216,18 @@ LEBL = []
 
 # Funciones para los botones de LEBL
 def LoadLEBLStructure():
+    # Si usabas la lista LEBL para otras cosas antiguas, la mantenemos para no romper nada
     LEBL.clear()
+    global bcn
+
     resultado = lb.LoadAirportStructure(leblPathEntry.get())
+
     if resultado == 0:
-        messagebox.showerror("Carga de LEBL", "Error al cargar el archivo.")
+        messagebox.showerror(title="Carga de LEBL", message="Error al cargar el archivo.")
     else:
         LEBL.append(resultado)
-        messagebox.showinfo("Carga de LEBL", "¡LEBL cargado correctamente!")
-
+        bcn = resultado  # <--- AQUÍ ESTÁ LA CLAVE: Guardamos el aeropuerto en bcn
+        messagebox.showinfo(title="Carga de LEBL", message="¡LEBL cargado correctamente!")
 
 def LoadTerminals():
     if not LEBL:
@@ -293,6 +299,51 @@ def ShowGateOccupancy():
     messagebox.showinfo("Ocupación de Puertas",
                         f"¡Ocupación de puertas obtenida!\nPuertas libres: {libre}\nPuertas ocupadas: {ocupado}.")
 
+
+def AssignNightGatesAction():
+    '''Llama a la función para asignar puertas a los aviones nocturnos'''
+    # Usamos global bcn por si acaso Python pierde la referencia
+    global bcn
+
+    # Comprobamos que el aeropuerto exista
+    if bcn is None or bcn == 0 or bcn == -1:
+        messagebox.showwarning(title="Aviso",
+                               message="Primero debes cargar la estructura del aeropuerto (Botón Load LEBL Structure).")
+        return
+
+    if not aircrafts:
+        messagebox.showwarning(title="Aviso", message="Primero debes cargar los vuelos.")
+        return
+
+    resultado = lb.AssignNightGates(bcn, aircrafts)
+
+    if resultado == 0:
+        messagebox.showinfo(title="Asignación Nocturna", message="¡Puertas nocturnas asignadas correctamente!")
+    else:
+        messagebox.showerror(title="Error", message="Error al asignar puertas. Revisa la consola para más detalles.")
+
+
+def FreeGateAction():
+    '''Libera la puerta de un avión basándose en el ID escrito en la interfaz'''
+    global bcn
+
+    if bcn is None or bcn == 0 or bcn == -1:
+        messagebox.showwarning(title="Aviso", message="Primero debes cargar la estructura del aeropuerto.")
+        return
+
+    av_id = freeGateEntry.get().strip()
+
+    if not av_id:
+        messagebox.showwarning(title="Aviso",
+                               message="Por favor, escribe el ID del avión que quieres liberar (ej. VLG123).")
+        return
+
+    resultado = lb.FreeGate(bcn, av_id)
+
+    if resultado == 0:
+        messagebox.showinfo(title="Puerta Liberada", message=f"La puerta del avión {av_id} ha quedado libre.")
+    else:
+        messagebox.showerror(title="Error", message=f"No se ha encontrado el avión {av_id} ocupando ninguna puerta.")
 
 def SearchAirlineTerminal():
     if LEBL == 0 or aircrafts == 0:
@@ -533,7 +584,22 @@ Button(scrollable_frame, text="Load Departures", bg="#F472B6", fg="white", comma
 Button(scrollable_frame, text="Merge Movements", bg="#F472B6", fg="white", command=MergeFlightsData).grid(row=33, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
 
 Button(scrollable_frame, text="Night Aircrafts", bg="#F472B6", fg="white", command=ShowNightAircrafts).grid(row=34, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+# ---------------------------------------------------------
+# NUEVA SECCIÓN: NIGHT GATES & FREE GATES (A partir de row 35)
+# ---------------------------------------------------------
 
+# Botón para asignar puertas nocturnas a los aviones que duermen en el aeropuerto
+Button(scrollable_frame, text="Assign Night Gates", bg="#F472B6", fg="white", command=AssignNightGatesAction).grid(row=35, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+
+# Etiqueta y recuadro de texto para escribir el ID del avión que quieres liberar (ej: VLG123)
+freeGateLabel = Label(scrollable_frame, text="ID Avión a liberar:")
+freeGateLabel.grid(row=36, column=0, padx=5, pady=5, sticky=E + W)
+
+freeGateEntry = Entry(scrollable_frame, width=12)
+freeGateEntry.grid(row=36, column=1, padx=5, pady=5, sticky=E + W)
+
+# Botón para ejecutar la liberación de la puerta
+Button(scrollable_frame, text="Free Gate", bg="#F472B6", fg="white", command=FreeGateAction).grid(row=37, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
 # Para mostrar los gráficos en la misma ventana
 canvas = FigureCanvasTkAgg(fig, master=right_panel)
 canvas.get_tk_widget().pack(fill="both", expand=True, padx=12, pady=12)

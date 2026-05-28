@@ -44,15 +44,17 @@ def PlotArrivals (aircrafts,ax):
     ax.set_title('Arrivals every hour')
 
 
-
-def SaveFlights (aircrafts, filename):
+def SaveFlights(aircrafts, filename):
     if not aircrafts:
-        return
+        return -1  # <-- Añade el -1 aquí
+
     f = open(filename, 'w')
-    f.write("Aircraft origin  arrival airline\n")
+    f.write("Aircraft origin arrival airline\n")
     for aircraft in aircrafts:
         f.write(f"{aircraft.aircraft} {aircraft.origin} {aircraft.arrival} {aircraft.airline}\n")
     f.close()
+
+    return 0  # <-- ¡ESTA ES LA LÍNEA CLAVE QUE FALTABA!
 
 
 def PlotAirlines (aircrafts,ax):
@@ -95,7 +97,7 @@ def PlotFlightsType (aircrafts,ax):
 def MapFlights(aircrafts, filename="flights.kml"):
     if not aircrafts:
         print("No aircrafts found")
-        return
+        return -1
     schengencode = ["LO", 'EB', 'LK', 'LC', 'EK', 'EE', 'EF', 'LF', 'ED', 'ET', 'LG', 'EH', 'LH', 'BI', 'LI', 'EV', 'EY', 'EL', 'LM', 'EN', 'EP', 'LP', 'LZ', 'LJ', 'LE', 'ES', 'LS', 'GC']
     LEBLlat = 41.297445
     LEBLlon = 2.0832941
@@ -125,6 +127,8 @@ def MapFlights(aircrafts, filename="flights.kml"):
     f.write('</Document>\n')
     f.write('</kml>\n')
     f.close()
+
+    return 0
 
 
 

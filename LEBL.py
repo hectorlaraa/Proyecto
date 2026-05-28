@@ -393,3 +393,73 @@ def PlotAirportSchematic(bcn, ax, terminal_filter=""):
         i += 1
 
     ax.autoscale_view()
+
+
+def AssignNightGates(bcn, aircrafts):
+    '''Asigna puertas a los aviones nocturnos (solo tienen salida)'''
+    # 1. Seguridad: comprobamos que las variables existan
+    if not bcn or bcn == 0 or bcn == -1:
+        print("Error: Aeropuerto no cargado.")
+        return -1
+    if not aircrafts:
+        print("Error: Lista de vuelos vacía.")
+        return -1
+
+    i = 0
+    asignados = 0
+    while i < len(aircrafts):
+        aircraft = aircrafts[i]
+
+        # 2. Comprobamos si NO tiene llegada (es un avión nocturno)
+        # Usamos getattr por seguridad extra por si el atributo no existiera
+        if getattr(aircraft, 'arrival', None) is None or aircraft.arrival == "":
+
+            # TRUCO: Como tu AssignGate busca el 'origin' para saber si es Schengen,
+            # le copiamos temporalmente el 'destination' al 'origin' para que no falle.
+            if getattr(aircraft, 'origin', None) is None:
+                aircraft.origin = aircraft.destination
+
+            # Llamamos a tu función de asignar
+            AssignGate(bcn, aircraft)
+            asignados += 1
+
+        i += 1
+
+    print(f"Se han asignado {asignados} aviones nocturnos con éxito.")
+    return 0
+
+
+def FreeGate(bcn, id_avion):
+    '''Libera la puerta buscando el ID del avión'''
+    if not bcn or bcn == 0 or bcn == -1:
+        return -1
+
+    # Pasamos a mayúsculas para evitar fallos tontos al escribir
+    id_buscado = id_avion.strip().upper()
+
+    i = 0
+    while i < len(bcn.terminals):
+        terminal = bcn.terminals[i]
+
+        j = 0
+        while j < len(terminal.boarding):
+            area = terminal.boarding[j]
+
+            k = 0
+            while k < len(area.gates):
+                gate = area.gates[k]
+
+                # Si está ocupado y tiene el avión guardado...
+                if gate.ocupado == True and hasattr(gate, 'aircraft') and gate.aircraft is not None:
+
+                    # Comparamos el ID del avión con el que buscamos
+                    if gate.aircraft.aircraft.strip().upper() == id_buscado:
+                        gate.ocupado = False
+                        gate.aircraft = None
+                        return 0  # ¡Encontrado y liberado!
+
+                k += 1
+            j += 1
+        i += 1
+
+    return -1  # Si termina los bucles y no lo encuentra
