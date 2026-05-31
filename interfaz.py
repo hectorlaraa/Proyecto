@@ -587,9 +587,19 @@ Button(scrollable_frame, text="Night Aircrafts", bg="#F472B6", fg="white", comma
 # ---------------------------------------------------------
 # NUEVA SECCIÓN: NIGHT GATES & FREE GATES (A partir de row 35)
 # ---------------------------------------------------------
-
+def PlotDayOccupancyAction():
+    if bcn is None or bcn == 0 or bcn == -1:
+        messagebox.showwarning(title = "Aviso", message="Carga LEBL")
+        return
+    if not aircrafts:
+        messagebox.showwarning(title = "Aviso", message="Carga los aeropuertos")
+        return
+    ax = clear_ax()
+    lb.PlotDayOccupancy(bcn, aircrafts, ax)
+    draw_chart()
 # Botón para asignar puertas nocturnas a los aviones que duermen en el aeropuerto
 Button(scrollable_frame, text="Assign Night Gates", bg="#F472B6", fg="white", command=AssignNightGatesAction).grid(row=35, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+Button(scrollable_frame,text="Plot Day Occupancy", bg="#F472B6", fg="white", command=PlotDayOccupancyAction).grid(row=38, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
 
 # Etiqueta y recuadro de texto para escribir el ID del avión que quieres liberar (ej: VLG123)
 freeGateLabel = Label(scrollable_frame, text="ID Avión a liberar:")
