@@ -1,8 +1,3 @@
-from fileinput import close
-
-from matplotlib import patches  # Para dibujar rectángulos en el gráfico
-
-
 class Gate:
     def __init__(self, name, id, ocupado):
         self.name = name
@@ -31,8 +26,9 @@ class BarcelonaAP:
         self.terminals = []
 
 
-def SetGates(area, init_gate, end_gate, prefix):
-    if init_gate > end_gate:
+def SetGates(area, init_gate, end_gate,
+             prefix):  # Definimos la función para asignar las puertas a cada zona de embarque, recibiendo el número inicial y final de las puertas y el prefijo de estas.
+    if init_gate > end_gate:  # Si el numero incial de puertas es mayor que el final significa que el formato del archivo no es correcot
         print("Error")
         return -1
 
@@ -40,7 +36,7 @@ def SetGates(area, init_gate, end_gate, prefix):
 
     area.gates = []
 
-    while end_gate >= current:
+    while end_gate >= current:  # Mientras el número final de puertas sea mayor o igual que el número actual, vamos creando las puertas con su respectivo nombre (prefijo + número) y añadiéndolas a la zona de embarque. El número de puerta se va incrementando en cada iteración.
         gate_name = prefix + str(current)
         gate = Gate(gate_name, current, False)
         area.gates.append(gate)
@@ -48,30 +44,33 @@ def SetGates(area, init_gate, end_gate, prefix):
     return 0
 
 
-def LoadAirlines(terminal, t_name):
+def LoadAirlines(terminal, t_name):  # Definimos la función para cargar las aerolíneas de cada terminal.
     filename = f"{t_name}_Airlines.txt"
-    try:
+    try:  # Intentamos abrir el archivos, pero en caso de no ser posible, el programa no avisará.
         f = open(filename, "r")
     except FileNotFoundError:
+        print(f"File not found: {filename}")
         return -1
-    terminal.airlines = []
-    line = f.readline()
-    while line != "":
+    terminal.airlines = []  # Creamos una lista vacía para almacenar las aerolíneas de la terminal y luego vamos leyendo el archivo línea por línea, extrayendo el nombre y código de cada aerolínea y añadiéndolos a la lista de aerolíneas de la terminal.
+    line = f.readline()  # Leemos la primera línea del archivo
+    while line != "":  # Mientras la línea no esté vacía, el blucle se seguirá ejecutando.
         linestrip = line.strip()
-        if linestrip != "":
+        if linestrip != "":  # Separamos las líneas que no estén vacías y las asignamos a la terminal correspondiente. Si el formato de la línea no es correcto, se indicará por pantalla.
             parts = linestrip.split("\t")
             if len(parts) >= 2:
                 airline_name = parts[0]
                 airline_code = parts[1]
-                terminal.airlines.append((airline_name, airline_code))
+                terminal.airlines.append((airline_name,
+                                          airline_code))  # Con append añadimos la aerolínea a la lista de aerolíneas de la terminal.
             else:
                 print(f"Line format: {line}")
-        line = f.readline()
+        line = f.readline()  # Para leer la línea siguiente y continuar el bucle.
     f.close()
     return 0
 
 
-def LoadAirportStructure(filename="Terminals.txt"):
+def LoadAirportStructure(
+        filename="Terminals.txt"):  # Definimos la función para cargar la estructura del aeropuerto, recibiendo el nombre del archivo que contiene la información de las terminales y zonas de embarque.
 
     try:
         # Intenta abrir el archivo en modo lectura ("r")
@@ -135,7 +134,6 @@ def LoadAirportStructure(filename="Terminals.txt"):
                                         # Crea el objeto de la zona de embarque
                                         area = BoardingArea(area_name, area_type)
 
-
                                         SetGates(area, init_gate, end_gate, area_name)
 
                                         # Añade la zona de embarque estructurada a la terminal actual
@@ -144,7 +142,6 @@ def LoadAirportStructure(filename="Terminals.txt"):
                                     except ValueError:
                                         print(
                                             f"Error crítico: El número de áreas para la terminal no es un entero válido.")
-
 
                             # Avanza al siguiente índice de zona de embarque
                             j += 1
@@ -158,11 +155,8 @@ def LoadAirportStructure(filename="Terminals.txt"):
                     print("errror")
                     # Si los datos numéricos de la terminal fallan, la ignora
 
-
-
         # Lee la siguiente línea para continuar el bucle principal
         line = f.readline()
-
 
     f.close()
 
@@ -170,32 +164,33 @@ def LoadAirportStructure(filename="Terminals.txt"):
     return bcn
 
 
-def GateOccupancy(bcn):
-    if not bcn or bcn == 0 or bcn == -1:
+def GateOccupancy(bcn):  # Definimos la fucnión para comprobar la ocupación de las gates del aeropuerto.
+    if not bcn or bcn == 0 or bcn == -1:  # Si el objeto del aeropuerto no es válido, el programa lo indicará
         print("Error")
         return []
     result = []
     i = 0
-    while i < len(bcn.terminals):
-        terminal = bcn.terminals[i]# recorremos las terminales
+    while i < len(
+            bcn.terminals):  # Buicle para recorrer las terminales del aeropuerto, luego las zonas de embarque de cada terminal y finalmente las gates de cada zona de embarque, comprobando si están ocupadas o no y añadiendo esta información a una lista que se devolverá al final.
+        terminal = bcn.terminals[i]  # recorremos las terminales
         j = 0
         while j < len(terminal.boarding):
-            area = terminal.boarding[j]# recorremos la zona de embarque de cada terminal
+            area = terminal.boarding[j]  # recorremos la zona de embarque de cada terminal
             k = 0
             while k < len(area.gates):
-                gate = area.gates[k]# recorremos las gates de cada zona de embarque y vemos si estan ocupadas
+                gate = area.gates[k]  # recorremos las gates de cada zona de embarque y vemos si estan ocupadas
                 if gate.ocupado:
                     status = "Occupied"
                 else:
                     status = "Free"
-                result.append((gate.name, status, gate.id))# lo añadimos a la lista inicial
+                result.append((gate.name, status, gate.id))  # lo añadimos a la lista inicial
                 k += 1
             j += 1
         i += 1
-    return result# luego usaremos esta lista para crear el plot
+    return result  # luego usaremos esta lista para crear el plot
 
 
-def IsAirlineInTerminal(terminal, name):
+def IsAirlineInTerminal(terminal, name):  # Función para determinar si la aerolínea se encuentra en la terminal.
     # 1. Validaciones iniciales de seguridad
     if name == "" or name == None:
         print("Error")
@@ -217,17 +212,17 @@ def IsAirlineInTerminal(terminal, name):
         airline_name = str(aerolinea_actual[0]).lower().strip()
         airline_code = str(aerolinea_actual[1]).lower().strip()
 
-        # COMPROBACIÓN INTELIGENTE usando 'in':
         # Verifica si el nombre guardado está dentro de la búsqueda, o al revés.
         if (airline_name in busqueda) or (airline_code in busqueda) or (busqueda in airline_name):
-            return True  # ¡Coincidencia encontrada!
+            return True
 
         i += 1
 
     return False
 
 
-def SearchTerminal(bcn, name):
+def SearchTerminal(bcn,
+                   name):  # Función para buscar el terminal de una aerolínea concreta, recibiendo el objeto del aeropuerto y el nombre de la aerolínea a buscar.
     # 1. Validación de seguridad por si el objeto del aeropuerto no es válido
     if not bcn or bcn == 0 or bcn == -1:
         print("Error")
@@ -239,7 +234,6 @@ def SearchTerminal(bcn, name):
         terminal_actual = bcn.terminals[i]
 
         # 3. Comprobamos si la aerolínea está en esta terminal.
-        # .strip().lower() evita fallos si el usuario escribió espacios o minúsculas.
         if IsAirlineInTerminal(terminal_actual, name.strip()) == True:
             # Si la encuentra, devuelve inmediatamente el nombre de la terminal (ej: "T1")
             return terminal_actual.name
@@ -250,7 +244,8 @@ def SearchTerminal(bcn, name):
     return 0
 
 
-def AssignGate(bcn, aircraft):
+def AssignGate(bcn,
+               aircraft):  # Función para asignar una puerta a un avión, recibiendo el objeto del aeropuerto y el objeto del avión a asignar.
     # 1. Listas de códigos para identificar las zonas
     schengenArea = ["a", "b", "c", "m", "r", "s", "u"]
     # (Cualquier otra cosa como "d", "e", "w", "y" será No-Schengen)
@@ -312,7 +307,8 @@ def AssignGate(bcn, aircraft):
     return -1
 
 
-def PlotAirportSchematic(bcn, ax, terminal_filter=""):
+def PlotAirportSchematic(bcn, ax,
+                         terminal_filter=""):  # Función para dibujar un esquema del aeropuerto, recibiendo el objeto del aeropuerto, el objeto del gráfico (ax) y un filtro opcional para mostrar solo una terminal concreta.
     # Limpiamos el gráfico y ocultamos los ejes numéricos
     ax.clear()
     ax.axis('off')
@@ -330,7 +326,9 @@ def PlotAirportSchematic(bcn, ax, terminal_filter=""):
         if terminal_filter == "" or terminal.name == terminal_filter:
 
             # 1. Dibujar la línea principal del Terminal (Tronco horizontal)
-            ax.plot([0, max(len(terminal.boarding) * 2, 2)], [y_offset, y_offset], lw=6, color="#54217E")
+            # La línea llega hasta la última área + el ancho de la rama de la puerta (0.75)
+            x_end = (len(terminal.boarding) - 1) * 2 + 1 + 0.75 if terminal.boarding else 2
+            ax.plot([0, x_end], [y_offset, y_offset], lw=6, color="#54217E")
             ax.text(-0.5, y_offset, terminal.name, fontsize=12, fontweight='bold', va='center')
 
             # Recorremos las áreas con un while básico
@@ -366,7 +364,7 @@ def PlotAirportSchematic(bcn, ax, terminal_filter=""):
                     color = "#ff0000" if gate.ocupado else "#00ff00"
                     ax.plot([x_area + 0.55, x_area + 0.75], [y_gate, y_gate], lw=2, color=color)
 
-                    if gate.ocupado and gate.aircraft != "":
+                    if gate.ocupado and gate.aircraft is not None:
                         ax.text(x_area - 0.2, y_gate, gate.aircraft.aircraft, fontsize=8, color='red', ha='right',
                                 va='center')
 
@@ -392,11 +390,11 @@ def PlotAirportSchematic(bcn, ax, terminal_filter=""):
         # Avanzamos a la siguiente terminal
         i += 1
 
-    ax.autoscale_view()
+    ax.relim()
 
 
-def AssignNightGates(bcn, aircrafts):
-    '''Asigna puertas a los aviones nocturnos (solo tienen salida)'''
+def AssignNightGates(bcn,
+                     aircrafts):  # Función para asignar puertas a los aviones nocturnos, recibiendo el objeto del aeropuerto y la lista de vuelos.
     # 1. Seguridad: comprobamos que las variables existan
     if not bcn or bcn == 0 or bcn == -1:
         print("Error: Aeropuerto no cargado.")
@@ -413,9 +411,6 @@ def AssignNightGates(bcn, aircrafts):
         # 2. Comprobamos si NO tiene llegada (es un avión nocturno)
         # Usamos getattr por seguridad extra por si el atributo no existiera
         if getattr(aircraft, 'arrival', None) is None or aircraft.arrival == "":
-
-            # TRUCO: Como tu AssignGate busca el 'origin' para saber si es Schengen,
-            # le copiamos temporalmente el 'destination' al 'origin' para que no falle.
             if getattr(aircraft, 'origin', None) is None:
                 aircraft.origin = aircraft.destination
 
@@ -429,8 +424,7 @@ def AssignNightGates(bcn, aircrafts):
     return 0
 
 
-def FreeGate(bcn, id_avion):
-    '''Libera la puerta buscando el ID del avión'''
+def FreeGate(bcn, id_avion):  # Libera la gate ocupada por un avión concreto indicado por el ususario.
     if not bcn or bcn == 0 or bcn == -1:
         return -1
 
@@ -463,3 +457,67 @@ def FreeGate(bcn, id_avion):
         i += 1
 
     return -1  # Si termina los bucles y no lo encuentra
+
+
+def AssignGatesAtTime(bcn, aircrafts,
+                      time):  # Función para asignar las gates a los aviones que despegan a una hora concreta, recibiendo el objeto del aeropuerto, la lista de vuelos y la hora a comprobar.
+
+    if not bcn or bcn == 0 or bcn == -1:  # Si el objeto del aeropuerto no es válido, el programa lo indicará
+        print("Error: Aeropuerto no cargado.")
+        return -1
+    h = int(time.split(":")[
+                0])  # Extraemos la hora de la cadena de texto (ej: "14:00" -> 14) para compararla con las horas de despegue y llegada de los aviones.
+    notassigned = 0
+    for aircraft in aircrafts:  # Primero liberamos las gates de los aviones que despegan a esa hora, para luego asignar las gates a los aviones que llegan a esa hora. De esta forma, si un avión llega a las 14:00 y otro despega a las 14:00, el avión que llega podrá ocupar la gate que deja libre el avión que despega.
+        if aircraft.departure and int(aircraft.departure.split(":")[0]) == h:
+            FreeGate(bcn, aircraft.aircraft)
+    for aircraft in aircrafts:  # Luego asignamos las gates a los aviones que llegan a esa hora, y si no se les puede asignar una gate, aumentamos el contador de "notassigned" para saber cuántos aviones no han podido ser asignados a una gate a esa hora concreta.
+        if aircraft.arrival and int(aircraft.arrival.split(":")[0]) == h:
+            if AssignGate(bcn, aircraft):
+                notassigned += 1
+    return notassigned
+
+
+def PlotDayOccupancy(bcn, aircrafts,
+                     ax):  # Recibe el aeropuerto, la lista de vuelos y el objeto ax. El estado inicial de bcn corresponde al inicio del día (solo aviones nocturnos). Recorre las 24 horas llamando a AssignGatesAtTime y acumula las gates ocupadas por terminal y los vuelos no asignados cada hora.
+    if not bcn or bcn == 0 or bcn == -1:
+        print("Error: Aeropuerto no cargado.")
+        return -1
+
+    notassigned = []  # Lista para almacenar los vuelos no asignados en cada hora.
+    occupancyT1 = []  # Lista para almacenar las gates ocupadas en T1 en cada hora.
+    occupancyT2 = []  # Lista para almacenar las gates ocupadas en T2 en cada hora.
+
+    for h in range(24):  # Recorremos las 24 horas del día.
+        hour = str(h) + ":00"
+        a = AssignGatesAtTime(bcn, aircrafts,
+                              hour)  # Liberamos las gates de los aviones que despegan y asignamos las de los que llegan en esta hora.
+        notassigned.append(max(a, 0))  # Si hay error (-1) lo tratamos como 0 para no distorsionar el gráfico.
+
+        count1 = 0
+        for area in bcn.terminals[0].boarding:  # Contamos gates ocupadas en T1 tras procesar la hora.
+            for gate in area.gates:
+                if gate.ocupado:
+                    count1 += 1
+        occupancyT1.append(count1)
+
+        count2 = 0
+        for area in bcn.terminals[1].boarding:  # Contamos gates ocupadas en T2 tras procesar la hora.
+            for gate in area.gates:
+                if gate.ocupado:
+                    count2 += 1
+        occupancyT2.append(count2)
+
+    hours = list(range(24))
+    ax.bar(hours, notassigned, color='#e57d90', alpha=0.6, label='Not assigned',
+           zorder=2)  # Barras para los vuelos no asignados.
+    ax.plot(hours, occupancyT1, color='#1e9faa', marker='o', linewidth=2, label='T1 gates occupied',
+            zorder=3)  # Línea para T1.
+    ax.plot(hours, occupancyT2, color='#32612d', marker='o', linewidth=2, label='T2 gates occupied',
+            zorder=3)  # Línea para T2.
+    ax.set_xlabel('Hour of the day')
+    ax.set_ylabel('Gates occupied / Flights not assigned')
+    ax.set_title('Gate occupancy throughout the day')
+    ax.set_xticks(hours)
+    ax.legend()
+    return 0

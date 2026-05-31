@@ -1,4 +1,4 @@
-class Airport:
+class Airport:  #Definimos la clase Airport con sus atributos ICAO, latitude, longitude y schengen.
     def __init__(self, ICAO, latitude, longitude):
         self.ICAO = ICAO
         self.latitude = latitude
@@ -6,13 +6,13 @@ class Airport:
         self.schengen = False
 
 
-def IsSchengenAirport(code):
+def IsSchengenAirport(code):    #Definimos una función que recibe un código ICAO y devuelve si x aeropuerto es Schengen o no combrobando el prefijo de este.
     schengen_prefixes = ['LO', 'EB', 'LK', 'LC', 'EK', 'EE', 'EF', 'LF', 'ED', 'ET', 'LG', 'EH', 'LH', 'BI', 'LI', 'EV',
-                         'EY', 'EL', 'LM', 'EN', 'EP', 'LP', 'LZ', 'LJ', 'LE', 'ES', 'LS']
+                        'EY', 'EL', 'LM', 'EN', 'EP', 'LP', 'LZ', 'LJ', 'LE', 'ES', 'LS']
     encontrado = False
-    prefix = str(code[0:2])
+    prefix = str(code[0:2]) #Aquí indicamos donde se encuentra el prefijo del código ICAO, que es lo que nos interesa para determinar si el aeropuerto es Schengen o no.
 
-    for i in schengen_prefixes:
+    for i in schengen_prefixes: #Recorremos la lista de prefijos Schengen y comprobamos si el prefijo del código ICAO coincide con alguno de ellos. Si es así, encontramos el aeropuerto y devolvemos True. Si el prefijo es una cadena vacía, significa que el código ICAO no tiene un formato válido, por lo que devolvemos False.
         if prefix == i:
             encontrado = True
         if prefix == "":
@@ -25,13 +25,13 @@ def SetSchengen(airport):
     airport.schengen = IsSchengenAirport(airport.ICAO)
 
 
-def PrintAirport(airport):
+def PrintAirport(airport):  #Definimos una función que recibe un objeto Airport y muestra su información por pantalla.
     print(f"ICAO: {airport.ICAO}")
     print(f"Coordinates: {airport.latitude}, {airport.longitude}")
     print(f"Schengen: {airport.schengen}")
 
 
-def LoadAirports(filename):
+def LoadAirports(filename): #Definimos una función para cargar el archivo de los aeropuertos.
     f = open(filename, 'r')
     airports = []
     f.readline()  # Saltamos la cabecera
@@ -77,49 +77,48 @@ def LoadAirports(filename):
     return airports
 
 
-def SaveSchengenAirports(airports, filename):
-    if len(airports) == 0:# si no hay aeropuertos devolvemos un error
-        return " Error, no hay nafda"
+def SaveSchengenAirports(airports, filename):   #Definimos una función que recibe la lista de aeropuertos y solo guarda en otro archivo aquellos que sean schengen.
+    if len(airports) == 0:
+        return " Error, no hay nada"
 
-    f = open(filename, 'w')
+    f = open(filename, 'w') #Abrimos el archivo en modo escritura, lo que significa que si el archivo ya existe, se sobrescribirá. Si no existe, se creará uno nuevo.
     f.write("CODE LAT LON")
 
-    for a in airports:# recorremos los aeropuertos y buscamos los que sean de la zona schenguen
+    for a in airports:
         if a.schengen == True:
             linea = a.ICAO + " " + str(a.latitude) + " " + str(a.longitude) + "\n"
             f.write(linea)
     return 0
 
 
-def AddAirport(airports, new_airport):
+def AddAirport(airports, new_airport):  #Definimos una función que recibe la lista de aeropuerto y uno nuevo, si no lo encuentra en la lista lo añade, pero si ya existe, no lo añade y devuelve un código de error (-1).
     encontrado = False
     i = 0
     num_airports = len(airports)
 
-    while i < num_airports and not encontrado:
+    while i < num_airports and not encontrado:  #La lógica que sigue el programa para determinar si el aeropuerto ya existe en la lista es recorrer la lista de aeropuertos y comparar el código ICAO de cada aeropuerto con el código ICAO del nuevo aeropuerto. Si encuentra una coincidencia, significa que el aeropuerto ya existe en la lista y se establece la variable "encontrado" como True. Si no encuentra ninguna coincidencia después de recorrer toda la lista, entonces "encontrado" permanece como False, lo que indica que el nuevo aeropuerto no está en la lista y puede ser añadido.
         if airports[i].ICAO == new_airport.ICAO:
-            encontrado = True# si encontramos el aeropuerto, significa que ya esta en la lista. No lo añadimos
+            encontrado = True
         else:
             i = i + 1
 
-    # 3. Conditional Statement: Solo añadimos si NO se encontró
-    if encontrado == False:
+    if encontrado == False:  #Solo añade el aeropuerto en caso de no encontrarlo en la lista.
         airports.append(new_airport)
         return 0
 
 
-def RemoveAirport(airport_list, code):
+def RemoveAirport(airport_list, code):  #Al igual que la función anterior, esta función recibe la lista de aeropuertos y el código del cual queremos eliminar, si lo encuentra lo elimina si no, nos avisa.
     encontrado = False
     i = 0
     n = len(airport_list)
 
-    while i < n and not encontrado:
+    while i < n and not encontrado: #Mientras no lo encuentre sigue buscando en la lista.
         if airport_list[i].ICAO == code:
             encontrado = True
         else:
             i = i + 1
 
-    if encontrado:
+    if encontrado: #Si encuentra el aeropuerto, lo elimina desplazando todos los elementos posteriores una posición hacia la izquierda y elimina el último elemento.
 
         while i < n - 1:
             airport_list[i] = airport_list[i + 1]
@@ -141,28 +140,28 @@ def RemoveAirport(airport_list, code):
 
 
 
-def PlotAirports(airports, ax):
+def PlotAirports(airports, ax): #Definimos una función que recibe la lista de aeropuertos y un objeto ax que utilizaremos para crear el gráfico.
 
-    n_schengen = 0
-    n_no_schengen = 0
+    schengen = 0    #Mantenemos cuenta de la cantidad de aeropuertos Schengen y No Schengen para luego representarlos en el gráfico.
+    no_schengen = 0
 
-    for a in airports:
+    for a in airports:  #Aqui recorre la lista airports y dependiendo de si es Schengen o no, va sumando a la variable correspondiente.
         if a.schengen == True:
-            n_schengen = n_schengen + 1
+            schengen = schengen + 1
         else:
-            n_no_schengen = n_no_schengen + 1
+            no_schengen = no_schengen + 1
 
-
+#Representamos el gráfico de barras con los datos obtenidos.
     labels = ['Airports']
-    ax.bar(labels, [n_schengen], label='Schengen', color='steelblue')
+    ax.bar(labels, [schengen], label='Schengen', color='steelblue')
 
-    ax.bar(labels, [n_no_schengen], bottom=[n_schengen], label='No Schengen', color='lightcoral')
+    ax.bar(labels, [no_schengen], bottom=[schengen], label='No Schengen', color='lightcoral')
 
     ax.set_xlabel('Count')
     ax.set_title('Schengen airports')
     ax.legend()
 
-def MapAirports(airports, filename="airports.kml"):
+def MapAirports(airports, filename="airports.kml"): #Definimos una función que nos generará un archivo KML para indicarnos donde se encuentra cada aeropuerto en el mapa.
     f = open(filename, 'w')
 
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
@@ -172,12 +171,11 @@ def MapAirports(airports, filename="airports.kml"):
 
     for a in airports:
 
-        if a.schengen == True:
+        if a.schengen == True:  #Aquí indicamos si el aeropuerto es Schengen o no asignandole colores diferentes.
             color = "ff0000ff"
         else:
             color = "ffff0000"
-
-        # 4. Escribimos la "chincheta" (Placemark) para cada aeropuerto
+#Guía visual para ver donde se encuentra x aeropuerto en el mapa.
         f.write('  <Placemark>\n')
         f.write('    <name>' + a.ICAO + '</name>\n')
         f.write('    <Style>\n')
@@ -186,7 +184,7 @@ def MapAirports(airports, filename="airports.kml"):
         f.write('      </IconStyle>\n')
         f.write('    </Style>\n')
         f.write('    <Point>\n')
-
+#Indicamos las coordenadas de cada aeropuerto, utilizando la longitud y latitud de cada uno.
         f.write('      <coordinates>' + str(a.longitude) + ',' + str(a.latitude) + ',0</coordinates>\n')
         f.write('    </Point>\n')
         f.write('  </Placemark>\n')
@@ -195,5 +193,7 @@ def MapAirports(airports, filename="airports.kml"):
     f.write('</kml>\n')
     f.close()
     print(f"Archivo {filename} generado. Ábrelo con Google Earth.")
+
+
 
 
