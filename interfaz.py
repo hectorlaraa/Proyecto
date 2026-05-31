@@ -49,6 +49,17 @@ def plot():
     ax = clear_ax()
     ap.PlotAirports(airports, ax)
     draw_chart()
+    
+def AssignGatesAtTimeAction():
+    if bcn is None or bcn == 0 or bcn == -1:
+        messagebox.showwarning(title="Aviso",message="Carga LEBL")
+        return
+    if not aircrafts:
+        messagebox.showerror(title="Aviso", message="Carga los vuelos")
+        return
+    hour = hourEntry.get()
+    notassigned = lb.AssignGatesAtTime(bcn, aircrafts, hour)
+    messagebox.showinfo("Assign Gates At Time")
 
 
 def Map():
