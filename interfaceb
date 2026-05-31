@@ -1,4 +1,5 @@
 from tkinter import *
+import os
 from tkinter import messagebox
 from tkinter import ttk
 from matplotlib.figure import Figure
@@ -83,6 +84,7 @@ def Map():
             messagebox.showerror("Google Earth", "Error creating the file.")
         else:
             messagebox.showinfo("Google Earth", "File 'airports.kml' created for Google Earth!")
+            os.system("Start airports.kml")
 
 def SaveSchengen():
     if not airports:
@@ -137,6 +139,7 @@ def MapFlights():
     resultado = ac.MapFlights(aircrafts)
     if resultado == 0:
         messagebox.showinfo("Google Earth", "File 'flights.kml' created for Google Earth!")
+        os.system("Start flights.kml")
     else:
         messagebox.showerror("Google Earth", "Error creating the file or flight list was empty.")
 
@@ -145,6 +148,7 @@ def LongDistance():
     resultado = ac.MapFlights(long_distance, "long_distance_flights.kml")
     if resultado == 0:
         messagebox.showinfo("Google Earth", "File 'long_distance_flights.kml' created!")
+        os.system("Start long_distance_flights.kml")
     else:
         messagebox.showerror("Google Earth", "Error creating the file or list was empty.")
 
