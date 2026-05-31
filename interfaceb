@@ -1,0 +1,847 @@
+from tkinter import *
+from tkinter import messagebox
+from tkinter import ttk
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import airport as ap
+import aircraft as ac
+from indi import LEBL as lb
+
+# ─── Global state ─────────────────────────────────────────────────────────────
+airports   = []
+aircrafts  = []
+departures = []
+LEBL       = []
+bcn        = None
+APP_PASSWORD = "1234"   # Changeable at runtime
+
+# ─── Input widgets (assigned inside show_app) ─────────────────────────────────
+pathEntry          = None
+ICAOEntry          = None
+latEntry           = None
+lonEntry           = None
+flightPathEntry    = None
+leblPathEntry      = None
+airlineSearchEntry = None
+freeGateEntry      = None
+hourEntry          = None
+canvas             = None   # FigureCanvasTkAgg
+
+# ─── Matplotlib figure ────────────────────────────────────────────────────────
+fig = Figure(figsize=(6, 5), dpi=100)
+
+def clear_ax():
+    fig.clf()
+    return fig.add_subplot(111)
+
+def draw_chart():
+    canvas.draw()
+
+
+# =============================================================================
+# AIRPORT ACTIONS
+# =============================================================================
+
+def Load():
+    airports.clear()
+    resultado = airports.extend(ap.LoadAirports(pathEntry.get()))
+    if resultado == 0:
+        messagebox.showerror("Load Airports", "Error loading the file.")
+    else:
+        messagebox.showinfo("Load Airports", "Airports loaded successfully!")
+    for a in airports:
+        ap.SetSchengen(a)
+
+def Add():
+    new = ap.Airport(ICAOEntry.get(), float(latEntry.get()), float(lonEntry.get()))
+    ap.SetSchengen(new)
+    resultado = ap.AddAirport(airports, new)
+    if resultado == 0:
+        messagebox.showinfo("Add Airport", f"Airport {ICAOEntry.get()} added!")
+    else:
+        messagebox.showerror("Add Airport", f"Error: Could not add airport {ICAOEntry.get()}.")
+
+def Remove():
+    resultado = ap.RemoveAirport(airports, ICAOEntry.get())
+    if resultado == 0:
+        messagebox.showinfo("Remove Airport", f"Airport {ICAOEntry.get()} removed!")
+    else:
+        messagebox.showerror("Remove Airport", f"Error: Airport {ICAOEntry.get()} not found.")
+
+def plot():
+    if not airports:
+        messagebox.showwarning("Plot", "No airports to display.")
+        return
+    ax = clear_ax()
+    ap.PlotAirports(airports, ax)
+    draw_chart()
+
+def Map():
+    if airports:
+        resultado = ap.MapAirports(airports, "airports.kml")
+        if resultado == 0:
+            messagebox.showerror("Google Earth", "Error creating the file.")
+        else:
+            messagebox.showinfo("Google Earth", "File 'airports.kml' created for Google Earth!")
+
+def SaveSchengen():
+    if not airports:
+        messagebox.showwarning("Save Schengen", "No airports to save.")
+        return
+    resultado = ap.SaveSchengenAirports(airports, "schengen_airports.txt")
+    if resultado == 0:
+        messagebox.showinfo("Save Schengen Airports",
+                            "Schengen airports saved to 'schengen_airports.txt'!")
+    else:
+        messagebox.showerror("Save Schengen Airports", "Error saving or list was empty.")
+
+
+# =============================================================================
+# FLIGHT ACTIONS
+# =============================================================================
+
+def LoadFlights():
+    aircrafts.clear()
+    resultado = aircrafts.extend(ac.LoadArrivals(flightPathEntry.get()))
+    if resultado == 0:
+        messagebox.showerror("Load Flights", "Error loading the file.")
+    else:
+        messagebox.showinfo("Load Flights", "Flights loaded successfully!")
+
+def PlotArrivals():
+    ax = clear_ax()
+    ac.PlotArrivals(aircrafts, ax)
+    draw_chart()
+
+def PlotAirlines():
+    ax = clear_ax()
+    ac.PlotAirlines(aircrafts, ax)
+    draw_chart()
+
+def PlotFlightsType():
+    ax = clear_ax()
+    ac.PlotFlightsType(aircrafts, ax)
+    draw_chart()
+
+def SaveFlights():
+    if not aircrafts:
+        messagebox.showwarning("Save Flights", "No flights to save.")
+        return
+    resultado = ac.SaveFlights(aircrafts, "ArrivalsFlights.txt")
+    if resultado == 0:
+        messagebox.showinfo("Save Flights", "Flights saved to 'ArrivalsFlights.txt'!")
+    else:
+        messagebox.showerror("Save Flights", "Error saving or list was empty.")
+
+def MapFlights():
+    resultado = ac.MapFlights(aircrafts)
+    if resultado == 0:
+        messagebox.showinfo("Google Earth", "File 'flights.kml' created for Google Earth!")
+    else:
+        messagebox.showerror("Google Earth", "Error creating the file or flight list was empty.")
+
+def LongDistance():
+    long_distance = ac.LongDistanceArrivals(aircrafts)
+    resultado = ac.MapFlights(long_distance, "long_distance_flights.kml")
+    if resultado == 0:
+        messagebox.showinfo("Google Earth", "File 'long_distance_flights.kml' created!")
+    else:
+        messagebox.showerror("Google Earth", "Error creating the file or list was empty.")
+
+
+# =============================================================================
+# DEPARTURES & MERGE ACTIONS
+# =============================================================================
+
+def LoadDeparturesData():
+    departures.clear()
+    filename = flightPathEntry.get()
+    lista_salidas, error_code = ac.LoadDepartures(filename)
+    if error_code == -1:
+        messagebox.showerror("Load Departures",
+                             "Error loading departures file. Make sure the file exists.")
+    else:
+        departures.extend(lista_salidas)
+        messagebox.showinfo("Load Departures", f"{len(departures)} departures loaded successfully!")
+
+def MergeFlightsData():
+    global aircrafts
+    if not aircrafts:
+        messagebox.showwarning("Warning", "Please load arrivals first.")
+        return
+    if not departures:
+        messagebox.showwarning("Warning", "Please load departures first.")
+        return
+    lista_fusionada, error_code = ac.MergeMovements(aircrafts, departures)
+    if error_code == 0:
+        aircrafts.clear()
+        aircrafts.extend(lista_fusionada)
+        messagebox.showinfo("Merge Flights", "Arrivals and departures merged successfully!")
+    else:
+        messagebox.showerror("Error", "Error trying to merge the lists.")
+
+def ShowNightAircrafts():
+    if not aircrafts:
+        messagebox.showwarning("Warning", "No flights loaded. Please load and merge files first.")
+        return
+    night_list, error_code = ac.NightAircraft(aircrafts)
+    if error_code == -1:
+        messagebox.showerror("Error", "There was a problem processing overnight aircraft.")
+    elif len(night_list) == 0:
+        messagebox.showinfo("Night Aircraft", "No aircraft staying overnight found.")
+    else:
+        info = f"{len(night_list)} aircraft staying overnight:\n\n"
+        for a in night_list[:10]:
+            info += f"Aircraft: {a.aircraft} | Destination: {a.destination} | Departure: {a.departure}\n"
+        if len(night_list) > 10:
+            info += f"...\n(And {len(night_list) - 10} more aircraft)"
+        messagebox.showinfo("Night Aircraft", info)
+
+
+# =============================================================================
+# LEBL ACTIONS
+# =============================================================================
+
+def LoadLEBLStructure():
+    LEBL.clear()
+    global bcn
+    resultado = lb.LoadAirportStructure(leblPathEntry.get())
+    if resultado == 0:
+        messagebox.showerror("Load LEBL", "Error loading the file.")
+    else:
+        LEBL.append(resultado)
+        bcn = resultado
+        messagebox.showinfo("Load LEBL", "LEBL loaded successfully!")
+
+def LoadTerminals():
+    if not LEBL:
+        messagebox.showerror("Load Terminals",
+                             "Load LEBL structure before loading terminals.")
+        return
+    aeropuertoLEBL = LEBL[0]
+    err = 0
+    for t in aeropuertoLEBL.terminals:
+        resultado = lb.LoadAirlines(t, t.name)
+        if resultado != 0:
+            err += 1
+    if err == 0:
+        messagebox.showinfo("Load Terminals", "Terminals and airlines loaded successfully!")
+    else:
+        messagebox.showerror("Load Terminals",
+                             f"Error loading terminals or airlines. {err} terminal(s) with errors.")
+
+def AssignGates():
+    if not LEBL or not aircrafts:
+        messagebox.showerror("Assign Gates", "Load structure and flights first.")
+        return
+    aeropuertoLEBL = LEBL[0]
+    for terminal in aeropuertoLEBL.terminals:
+        for area in terminal.boarding:
+            for gate in area.gates:
+                gate.ocupado = False
+                gate.aircraft = ""
+    unassigned = 0
+    assigned   = 0
+    for flight in aircrafts:
+        resultado = lb.AssignGate(aeropuertoLEBL, flight)
+        if resultado == 0:
+            assigned += 1
+        else:
+            unassigned += 1
+    messagebox.showinfo("Assign Gates",
+                        f"Assignment complete! {assigned} flights assigned, {unassigned} unassigned.")
+
+def ShowGateOccupancy():
+    if not aircrafts or not LEBL:
+        messagebox.showerror("Gate Occupancy",
+                             "Load flights, structure and terminals first.")
+        return
+    aeropuerto = LEBL[0]
+    if len(aeropuerto.terminals) == 0:
+        messagebox.showerror("Data Error",
+                             "Terminals.txt has 0 terminals. Check the file format!")
+        return
+    resultado = lb.GateOccupancy(aeropuerto)
+    if not resultado:
+        messagebox.showerror("Gate Occupancy",
+                             "Terminals have 0 gates. Check the ranges in Terminals.txt.")
+        return
+    free     = sum(1 for p in resultado if p[1] != "Occupied")
+    occupied = sum(1 for p in resultado if p[1] == "Occupied")
+    messagebox.showinfo("Gate Occupancy",
+                        f"Free gates: {free}\nOccupied gates: {occupied}.")
+
+def AssignNightGatesAction():
+    global bcn
+    if bcn is None or bcn == 0 or bcn == -1:
+        messagebox.showwarning("Warning",
+                               "Please load the airport structure first (Load LEBL Structure).")
+        return
+    if not aircrafts:
+        messagebox.showwarning("Warning", "Please load flights first.")
+        return
+    resultado = lb.AssignNightGates(bcn, aircrafts)
+    if resultado == 0:
+        messagebox.showinfo("Night Gates", "Night gates assigned successfully!")
+    else:
+        messagebox.showerror("Error", "Error assigning gates. Check the console.")
+
+def FreeGateAction():
+    global bcn
+    if bcn is None or bcn == 0 or bcn == -1:
+        messagebox.showwarning("Warning", "Please load the airport structure first.")
+        return
+    av_id = freeGateEntry.get().strip()
+    if not av_id:
+        messagebox.showwarning("Warning",
+                               "Please enter the aircraft ID to free (e.g. VLG123).")
+        return
+    resultado = lb.FreeGate(bcn, av_id)
+    if resultado == 0:
+        messagebox.showinfo("Gate Freed", f"Gate for aircraft {av_id} is now free.")
+    else:
+        messagebox.showerror("Error", f"Aircraft {av_id} not found occupying any gate.")
+
+def SearchAirlineTerminal():
+    if not LEBL:
+        messagebox.showerror("Search Terminal",
+                             "Load the LEBL structure and terminals before searching.")
+        return
+    airline_name = airlineSearchEntry.get()
+    if airline_name == "":
+        messagebox.showerror("Search Terminal",
+                             "Enter the airline name or code to search.")
+        return
+    resultado = lb.SearchTerminal(LEBL[0], airline_name)
+    if resultado == 0:
+        messagebox.showerror("Search Terminal", f"Error searching for airline {airline_name}.")
+    else:
+        messagebox.showinfo("Search Terminal",
+                            f"Airline {airline_name} found! Operates in terminal: {resultado}.")
+
+def MapT1():
+    if not LEBL:
+        messagebox.showerror("T1 Map", "Load the LEBL structure first.")
+        return
+    ax = clear_ax()
+    lb.PlotAirportSchematic(LEBL[0], ax, terminal_filter="T1")
+    draw_chart()
+
+def MapT2():
+    if not LEBL:
+        messagebox.showerror("T2 Map", "Load the LEBL structure first.")
+        return
+    ax = clear_ax()
+    lb.PlotAirportSchematic(LEBL[0], ax, terminal_filter="T2")
+    draw_chart()
+
+def AssignGatesAtTimeAction():
+    if bcn is None or bcn == 0 or bcn == -1:
+        messagebox.showwarning("Warning", "Load LEBL first.")
+        return
+    if not aircrafts:
+        messagebox.showwarning("Warning", "Load flights first.")
+        return
+    hour = hourEntry.get()
+    lb.AssignGatesAtTime(bcn, aircrafts, hour)
+    messagebox.showinfo("Assign Gates at Time", "Gates assigned for the specified hour!")
+
+
+# =============================================================================
+# LOGIN COLOR PALETTE  — soft pink
+# =============================================================================
+BG_DARK    = "#fce4ec"   # very light pink (main background)
+BG_PANEL   = "#ffffff"   # pure white for the form card
+ACCENT     = "#e91e8c"   # strong pink for buttons and accents
+ACCENT_DIM = "#f48fb1"   # mid pink for idle borders
+TEXT_LIGHT = "#880e4f"   # dark text on pink (high contrast)
+TEXT_DIM   = "#ad1457"   # secondary text, also readable
+
+ENTRY_STYLE = dict(
+    bg="#fce4ec", fg="#880e4f",
+    insertbackground=ACCENT,
+    font=("Helvetica", 11),
+    relief="flat", bd=0,
+    highlightthickness=1,
+    highlightbackground=ACCENT_DIM,
+    highlightcolor=ACCENT
+)
+
+
+# =============================================================================
+# CHANGE PASSWORD WINDOW
+# =============================================================================
+
+def show_change_password(parent):
+    global APP_PASSWORD
+
+    modal = Toplevel(parent)
+    modal.title("Change Password")
+    modal.configure(bg=BG_DARK)
+    modal.resizable(False, False)
+
+    modal.update_idletasks()
+    w, h = 360, 310
+    px = parent.winfo_rootx() + (parent.winfo_width()  - w) // 2
+    py = parent.winfo_rooty() + (parent.winfo_height() - h) // 2
+    modal.geometry(f"{w}x{h}+{px}+{py}")
+    modal.grab_set()
+
+    Label(modal, text="CHANGE PASSWORD",
+          font=("Helvetica", 13, "bold"),
+          bg=BG_DARK, fg=ACCENT).pack(pady=(22, 2))
+    Label(modal, text="Enter your credentials",
+          font=("Helvetica", 9), bg=BG_DARK, fg=TEXT_DIM).pack(pady=(0, 16))
+
+    def make_field(parent_widget, lbl_text):
+        f = Frame(parent_widget, bg=BG_DARK)
+        f.pack(fill="x", padx=30, pady=4)
+        Label(f, text=lbl_text, font=("Helvetica", 9),
+              bg=BG_DARK, fg=TEXT_LIGHT, anchor="w").pack(fill="x")
+        e = Entry(f, show="*", width=28, **ENTRY_STYLE)
+        e.pack(fill="x", ipady=6, pady=(2, 0))
+        return e
+
+    e_current = make_field(modal, "Current password")
+    e_new      = make_field(modal, "New password")
+    e_confirm  = make_field(modal, "Confirm new password")
+
+    btn_frame = Frame(modal, bg=BG_DARK)
+    btn_frame.pack(fill="x", padx=30, pady=(14, 0))
+
+    def confirm():
+        global APP_PASSWORD
+        current = e_current.get()
+        new     = e_new.get()
+        confirm = e_confirm.get()
+        if current != APP_PASSWORD:
+            messagebox.showerror("Error", "Current password is incorrect.", parent=modal)
+            return
+        if len(new) < 4:
+            messagebox.showerror("Error",
+                                 "New password must be at least 4 characters.",
+                                 parent=modal)
+            return
+        if new != confirm:
+            messagebox.showerror("Error", "New passwords do not match.", parent=modal)
+            return
+        APP_PASSWORD = new
+        messagebox.showinfo("Success", "Password changed successfully!", parent=modal)
+        modal.destroy()
+
+    Button(btn_frame, text="Save",
+           command=confirm,
+           bg=ACCENT, fg="white",
+           font=("Helvetica", 10, "bold"),
+           relief="flat", cursor="hand2",
+           padx=10, pady=6, bd=0).pack(side="left", expand=True, fill="x", padx=(0, 4))
+
+    Button(btn_frame, text="Cancel",
+           command=modal.destroy,
+           bg="#f8bbd0", fg=TEXT_DIM,
+           font=("Helvetica", 10),
+           relief="flat", cursor="hand2",
+           padx=10, pady=6, bd=0).pack(side="left", expand=True, fill="x", padx=(4, 0))
+
+
+# =============================================================================
+# LOGIN WINDOW
+# =============================================================================
+
+def show_login():
+    login = Tk()
+    login.title("Airport Manager — Access")
+    login.configure(bg=BG_DARK)
+    login.resizable(True, True)
+    login.state("zoomed")
+
+    # ── Header ────────────────────────────────────────────────────────────────
+    header = Frame(login, bg=BG_DARK)
+    header.pack(fill="x", pady=(80, 0))
+
+    Label(header, text="✈",
+          font=("Helvetica", 52),
+          bg=BG_DARK, fg=ACCENT).pack()
+
+    Label(header, text="AIRPORT MANAGER",
+          font=("Helvetica", 28, "bold"),
+          bg=BG_DARK, fg=TEXT_LIGHT).pack(pady=(10, 4))
+
+    Label(header, text="Airport Management System",
+          font=("Helvetica", 12),
+          bg=BG_DARK, fg=TEXT_DIM).pack()
+
+    # Pink divider
+    Frame(login, bg=ACCENT, height=2).pack(fill="x", padx=160, pady=(24, 0))
+
+    # ── Central panel (placed at center) ──────────────────────────────────────
+    panel = Frame(login, bg=BG_PANEL, bd=0,
+                  highlightthickness=1, highlightbackground=ACCENT_DIM)
+    panel.place(relx=0.5, rely=0.48, anchor="center", width=460)
+
+    Label(panel, text="PASSWORD",
+          font=("Helvetica", 9, "bold"),
+          bg=BG_PANEL, fg=TEXT_DIM,
+          anchor="w").pack(fill="x", padx=30, pady=(28, 2))
+
+    passEntry = Entry(panel, show="*", width=32, **ENTRY_STYLE)
+    passEntry.pack(fill="x", padx=30, ipady=10, pady=(0, 6))
+    passEntry.focus_set()
+
+    error_label = Label(panel, text="",
+                        font=("Helvetica", 9),
+                        bg=BG_PANEL, fg="#c0392b")
+    error_label.pack(pady=(0, 4))
+
+    def check_password(event=None):
+        if passEntry.get() == APP_PASSWORD:
+            login.destroy()
+            run_splash(show_app)
+        else:
+            passEntry.delete(0, END)
+            passEntry.configure(highlightbackground="#c0392b",
+                                highlightcolor="#c0392b")
+            error_label.config(text="Incorrect password. Please try again.")
+            login.after(2500, lambda: (
+                passEntry.configure(highlightbackground=ACCENT_DIM,
+                                    highlightcolor=ACCENT),
+                error_label.config(text="")
+            ))
+
+    passEntry.bind("<Return>", check_password)
+
+    Button(panel, text="ACCESS",
+           command=check_password,
+           bg=ACCENT, fg="white",
+           font=("Helvetica", 12, "bold"),
+           relief="flat", cursor="hand2",
+           padx=10, pady=10, bd=0).pack(fill="x", padx=30, pady=(0, 28), ipady=2)
+
+    # ── Footer ────────────────────────────────────────────────────────────────
+    Frame(login, bg=ACCENT_DIM, height=1).pack(fill="x", padx=160)
+
+    footer = Frame(login, bg=BG_DARK)
+    footer.pack(fill="x", pady=18)
+
+    Label(footer, text="Need to change your password?",
+          font=("Helvetica", 10),
+          bg=BG_DARK, fg=TEXT_DIM).pack()
+
+    change_lbl = Label(footer, text="Click here to change it",
+                       font=("Helvetica", 10, "underline"),
+                       bg=BG_DARK, fg=ACCENT, cursor="hand2")
+    change_lbl.pack(pady=(4, 0))
+    change_lbl.bind("<Button-1>", lambda e: show_change_password(login))
+
+    Label(login, text="v1.0  |  LEBL Barcelona El Prat",
+          font=("Helvetica", 9),
+          bg=BG_DARK, fg=ACCENT_DIM).pack(side="bottom", pady=14)
+
+    login.mainloop()
+
+
+# =============================================================================
+# SPLASH / INTRO ANIMATION shown before the main window
+# =============================================================================
+
+def run_splash(on_done):
+    """
+    Full-screen pink splash with a large plane emoji that flies across,
+    followed by a runway-style loading bar and a welcome text reveal.
+    When the animation finishes, calls on_done() to show the main window.
+    """
+    splash = Tk()
+    splash.title("")
+    splash.configure(bg=BG_DARK)
+    splash.state("zoomed")
+    splash.overrideredirect(True)   # frameless
+
+    sw = splash.winfo_screenwidth()
+    sh = splash.winfo_screenheight()
+
+    # ── Background canvas ──────────────────────────────────────────────────────
+    c = Canvas(splash, bg=BG_DARK, highlightthickness=0)
+    c.pack(fill="both", expand=True)
+
+    # Runway dashes (decorative horizontal lines)
+    for y_frac in [0.62, 0.64, 0.66]:
+        y = int(sh * y_frac)
+        for x in range(0, sw, 60):
+            c.create_rectangle(x, y, x + 30, y + 2, fill=ACCENT_DIM, outline="")
+
+    # Welcome text (starts invisible, fades in via color cycling)
+    welcome = c.create_text(sw // 2, int(sh * 0.35),
+                            text="AIRPORT MANAGER",
+                            font=("Helvetica", 46, "bold"),
+                            fill=BG_DARK)   # invisible at start
+
+    subtitle = c.create_text(sw // 2, int(sh * 0.35) + 56,
+                              text="Airport Management System",
+                              font=("Helvetica", 16),
+                              fill=BG_DARK)
+
+    # Plane starts off the left edge
+    plane_x = -80
+    plane_y  = int(sh * 0.58)
+    plane    = c.create_text(plane_x, plane_y,
+                             text="✈",
+                             font=("Helvetica", 64),
+                             fill=ACCENT)
+
+    # Loading bar background
+    bar_x1, bar_y1 = sw // 2 - 220, int(sh * 0.75)
+    bar_x2, bar_y2 = sw // 2 + 220, int(sh * 0.75) + 10
+    c.create_rectangle(bar_x1, bar_y1, bar_x2, bar_y2,
+                       fill=ACCENT_DIM, outline="")
+    bar_fill = c.create_rectangle(bar_x1, bar_y1, bar_x1, bar_y2,
+                                  fill=ACCENT, outline="")
+
+    pct_text = c.create_text(sw // 2, bar_y2 + 20,
+                             text="0%",
+                             font=("Helvetica", 11, "bold"),
+                             fill=TEXT_DIM)
+
+    total_frames  = 80       # ~2 s at 25 ms per frame
+    landing_frame = 55       # frame where plane reaches center and "lands"
+
+    # Lerp helper
+    def lerp_color(c1, c2, t):
+        """Interpolate between two hex colors."""
+        r1, g1, b1 = int(c1[1:3], 16), int(c1[3:5], 16), int(c1[5:7], 16)
+        r2, g2, b2 = int(c2[1:3], 16), int(c2[3:5], 16), int(c2[5:7], 16)
+        r = int(r1 + (r2 - r1) * t)
+        g = int(g1 + (g2 - g1) * t)
+        b = int(b1 + (b2 - b1) * t)
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    frame = [0]
+
+    def tick():
+        f = frame[0]
+
+        # ── Plane movement ──────────────────────────────────────────────────
+        if f <= landing_frame:
+            # Fly from left to center, slight arc (parabola dip then rise)
+            t   = f / landing_frame
+            px  = int(-80 + (sw // 2 + 80) * t)
+            # Gentle sine arc: dips slightly then levels out
+            arc = int(30 * (1 - t) * t * 4)
+            c.coords(plane, px, plane_y - arc)
+        else:
+            # After landing: slide right and off screen
+            extra = f - landing_frame
+            t2    = extra / (total_frames - landing_frame)
+            px    = int(sw // 2 + (sw + 100) * t2)
+            c.coords(plane, px, plane_y)
+
+        # ── Loading bar ─────────────────────────────────────────────────────
+        progress = min(f / total_frames, 1.0)
+        fill_x   = bar_x1 + int((bar_x2 - bar_x1) * progress)
+        c.coords(bar_fill, bar_x1, bar_y1, fill_x, bar_y2)
+        c.itemconfig(pct_text, text=f"{int(progress * 100)}%")
+
+        # ── Text reveal (fade in from frame 20 onward) ──────────────────────
+        if f >= 20:
+            t_text = min((f - 20) / 30, 1.0)
+            col_w  = lerp_color(BG_DARK, TEXT_LIGHT, t_text)
+            col_s  = lerp_color(BG_DARK, TEXT_DIM,   t_text)
+            c.itemconfig(welcome,  fill=col_w)
+            c.itemconfig(subtitle, fill=col_s)
+
+        frame[0] += 1
+
+        if f < total_frames:
+            splash.after(25, tick)
+        else:
+            # Short pause then hand off
+            splash.after(200, lambda: (splash.destroy(), on_done()))
+
+    splash.after(50, tick)
+    splash.mainloop()
+
+
+# =============================================================================
+# MAIN APPLICATION WINDOW
+# =============================================================================
+
+def show_app():
+    global pathEntry, ICAOEntry, latEntry, lonEntry
+    global flightPathEntry, leblPathEntry, airlineSearchEntry
+    global freeGateEntry, hourEntry, canvas
+
+    window = Tk()
+    window.withdraw()
+    window.title("Airport Manager")
+    window.geometry("1500x700")
+    window.state("zoomed")
+    window.columnconfigure(0, weight=1)
+    window.columnconfigure(1, weight=1)
+    window.columnconfigure(2, weight=3)
+
+    # ── Left panel with scroll ─────────────────────────────────────────────────
+    LEFT_panel = Frame(window, width=220)
+    LEFT_panel.pack(side="left", fill="y", padx=10, pady=10)
+
+    canvas_scroll = Canvas(LEFT_panel, width=200)
+    scrollbar = ttk.Scrollbar(LEFT_panel, orient="vertical", command=canvas_scroll.yview)
+    scrollable_frame = Frame(canvas_scroll)
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas_scroll.configure(scrollregion=canvas_scroll.bbox("all"))
+    )
+
+    canvas_scroll.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas_scroll.configure(yscrollcommand=scrollbar.set)
+    scrollbar.pack(side="right", fill="y")
+    canvas_scroll.pack(side="left", fill="both", expand=True)
+
+    # ── Right panel (chart) ───────────────────────────────────────────────────
+    right_panel = Frame(window)
+    right_panel.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+
+    BTN = dict(bg="#F472B6", fg="white", relief="flat")
+
+    def btn(parent, txt, cmd, row):
+        Button(parent, text=txt, command=cmd, **BTN).grid(
+            row=row, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+
+    # ── AIRPORT ───────────────────────────────────────────────────────────────
+    Label(scrollable_frame, text="AIRPORT",
+          font=("Times New Roman", 18, "bold")).grid(
+        row=0, column=0, columnspan=2, padx=5, pady=5, sticky=E + W)
+
+    Label(scrollable_frame, text="File:").grid(row=1, column=0, padx=5, pady=5, sticky=E + W)
+    pathEntry = Entry(scrollable_frame, width=12)
+    pathEntry.insert(0, "Airports.txt")
+    pathEntry.grid(row=1, column=1, padx=5, pady=5, sticky=E + W)
+
+    Label(scrollable_frame, text="ICAO:").grid(row=2, column=0, padx=5, pady=5, sticky=E + W)
+    ICAOEntry = Entry(scrollable_frame, width=12)
+    ICAOEntry.grid(row=2, column=1, padx=5, pady=5, sticky=E + W)
+
+    Label(scrollable_frame, text="Latitude:").grid(row=3, column=0, padx=5, pady=5, sticky=E + W)
+    latEntry = Entry(scrollable_frame, width=12)
+    latEntry.grid(row=3, column=1, padx=5, pady=5, sticky=E + W)
+
+    Label(scrollable_frame, text="Longitude:").grid(row=4, column=0, padx=5, pady=5, sticky=E + W)
+    lonEntry = Entry(scrollable_frame, width=12)
+    lonEntry.grid(row=4, column=1, padx=5, pady=5, sticky=E + W)
+
+    btn(scrollable_frame, "Load Airports",  Load,         5)
+    btn(scrollable_frame, "Add Airport",    Add,          6)
+    btn(scrollable_frame, "Remove Airport", Remove,       7)
+    btn(scrollable_frame, "Save Schengen",  SaveSchengen, 8)
+    btn(scrollable_frame, "Plot Chart",     plot,         9)
+    btn(scrollable_frame, "Google Earth",   Map,          10)
+
+    # ── FLIGHTS ───────────────────────────────────────────────────────────────
+    Label(scrollable_frame, text="FLIGHTS",
+          font=("Times New Roman", 18, "bold")).grid(
+        row=11, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+
+    Label(scrollable_frame, text="File:").grid(row=12, column=0, padx=5, pady=5, sticky=E + W)
+    flightPathEntry = Entry(scrollable_frame, width=12)
+    flightPathEntry.insert(0, "Arrivals.txt")
+    flightPathEntry.grid(row=12, column=1, padx=5, pady=5, sticky=E + W)
+
+    btn(scrollable_frame, "Load Flights",   LoadFlights,     13)
+    btn(scrollable_frame, "Save Flights",   SaveFlights,     14)
+    btn(scrollable_frame, "Plot Arrivals",  PlotArrivals,    15)
+    btn(scrollable_frame, "Plot Airlines",  PlotAirlines,    16)
+    btn(scrollable_frame, "Schengen Chart", PlotFlightsType, 17)
+    btn(scrollable_frame, "Google Earth",   MapFlights,      18)
+    btn(scrollable_frame, "Long Distance",  LongDistance,    19)
+
+    # ── LEBL ──────────────────────────────────────────────────────────────────
+    Label(scrollable_frame, text="LEBL",
+          font=("Times New Roman", 18, "bold")).grid(
+        row=20, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+
+    Label(scrollable_frame, text="LEBL File:").grid(row=21, column=0, padx=5, pady=5, sticky=E + W)
+    leblPathEntry = Entry(scrollable_frame, width=12)
+    leblPathEntry.insert(0, "Terminals.txt")
+    leblPathEntry.grid(row=21, column=1, padx=5, pady=5, sticky=E + W)
+
+    Label(scrollable_frame, text="Search Airline:").grid(row=22, column=0, padx=5, pady=5, sticky=E + W)
+    airlineSearchEntry = Entry(scrollable_frame, width=12)
+    airlineSearchEntry.grid(row=22, column=1, padx=5, pady=5, sticky=E + W)
+
+    btn(scrollable_frame, "Load LEBL Structure",    LoadLEBLStructure,     23)
+    btn(scrollable_frame, "Load Terminals",         LoadTerminals,         24)
+    btn(scrollable_frame, "Assign Gates",           AssignGates,           25)
+    btn(scrollable_frame, "Gate Occupancy",         ShowGateOccupancy,     26)
+    btn(scrollable_frame, "Search Flight Terminal", SearchAirlineTerminal, 27)
+    btn(scrollable_frame, "Map T1",                 MapT1,                 28)
+    btn(scrollable_frame, "Map T2",                 MapT2,                 29)
+
+    # ── DEPARTURES ────────────────────────────────────────────────────────────
+    Label(scrollable_frame, text="DEPARTURES",
+          font=("Times New Roman", 18, "bold")).grid(
+        row=30, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+
+    Label(scrollable_frame, text="File:").grid(row=31, column=0, padx=5, pady=5, sticky=E + W)
+    departurePathEntry = Entry(scrollable_frame, width=12)
+    departurePathEntry.insert(0, "departures.txt")
+    departurePathEntry.grid(row=31, column=1, padx=5, pady=5, sticky=E + W)
+
+    btn(scrollable_frame, "Load Departures", LoadDeparturesData, 32)
+    btn(scrollable_frame, "Merge Movements", MergeFlightsData,   33)
+    btn(scrollable_frame, "Night Aircraft",  ShowNightAircrafts, 34)
+
+    # ── NIGHT GATES & FREE GATES ──────────────────────────────────────────────
+    btn(scrollable_frame, "Assign Night Gates", AssignNightGatesAction, 35)
+
+    Label(scrollable_frame, text="Aircraft ID to free:").grid(
+        row=36, column=0, padx=5, pady=5, sticky=E + W)
+    freeGateEntry = Entry(scrollable_frame, width=12)
+    freeGateEntry.grid(row=36, column=1, padx=5, pady=5, sticky=E + W)
+
+    btn(scrollable_frame, "Free Gate", FreeGateAction, 37)
+
+    Label(scrollable_frame, text="Hour (hh:00):").grid(
+        row=38, column=0, padx=5, pady=5, sticky=E + W)
+    hourEntry = Entry(scrollable_frame, width=12)
+    hourEntry.insert(0, "08:00")
+    hourEntry.grid(row=38, column=1, padx=5, pady=5, sticky=E + W)
+
+    def PlotDayOccupancyAction():
+        if bcn is None or bcn == 0 or bcn == -1:
+            messagebox.showwarning("Warning", "Load LEBL first.")
+            return
+        if not aircrafts:
+            messagebox.showwarning("Warning", "Load flights first.")
+            return
+        ax = clear_ax()
+        lb.PlotDayOccupancy(bcn, aircrafts, ax)
+        draw_chart()
+
+    btn(scrollable_frame, "Assign Gates at Time", AssignGatesAtTimeAction, 39)
+    btn(scrollable_frame, "Plot Day Occupancy",   PlotDayOccupancyAction,  40)
+
+    # ── Chart ─────────────────────────────────────────────────────────────────
+    canvas = FigureCanvasTkAgg(fig, master=right_panel)
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=12, pady=12)
+
+    # ── Scroll only in left panel ──────────────────────────────────────────────
+    def _on_mousewheel(event):
+        canvas_scroll.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def _enable_scroll(event):
+        window.bind_all("<MouseWheel>", _on_mousewheel)
+
+    def _disable_scroll(event):
+        window.unbind_all("<MouseWheel>")
+
+    LEFT_panel.bind("<Enter>", _enable_scroll)
+    LEFT_panel.bind("<Leave>", _disable_scroll)
+
+    window.deiconify()
+    window.mainloop()
+
+
+# =============================================================================
+# ENTRY POINT
+# =============================================================================
+
+show_login()
