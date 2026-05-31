@@ -463,3 +463,42 @@ def FreeGate(bcn, id_avion):
         i += 1
 
     return -1  # Si termina los bucles y no lo encuentra
+
+def AssignGatesAtTime (bcn, aircrafts, time):
+
+    if not bcn or bcn == 0 or bcn == -1:
+        print("Error: Aeropuerto no cargado.")
+        return -1
+    h = int(time.split(":")[0])
+    notassigned = 0
+    for aircraft in aircrafts:
+        if aircraft.departure_time == h:
+            FreeGate(bcn, aircraft)
+    for aircraft in aircrafts:
+        if int(aircraft.landing_time.split(":")[0]) == h:
+            if AssignGate(bcn, aircraft):
+                notassigned += 1
+    return notassigned
+def PlotDayOccupancy(bcn, aircrafts):
+    if not bcn or bcn == 0 or bcn == -1:
+        print("Error: Aeropuerto no cargado.")
+        return -1
+    notassigned = []
+    occupancyT1 = []
+    occupancyT2 = []
+    for h in range(24):
+        hour = str(h) + ":00"
+        a = AssignGatesAtTime(bcn, aircrafts, hour)
+        notassigned.append(a)
+        count1 = 0
+        for area in bcn.terminals[0].boarding:
+            for gate in area.gates:
+                if gate.ocupado:
+                    count1 += 1
+        occupancyT1.append(count1)
+        count2 = 0
+        for area in bcn.terminals[1].boarding:
+            for gate in area.gates:
+                if gate.ocupado:
+                    count2 += 1
+        occupancyT2.append(count2)
