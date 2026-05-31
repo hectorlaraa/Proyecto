@@ -6,7 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # Necesario par
 # Importamos las funciones de los otros archivos.
 import airport as ap
 import aircraft as ac
-import LEBL as lb
+from indi import LEBL as lb
 
 # Lista global de aeropuertos
 airports = []
@@ -562,6 +562,7 @@ Button(scrollable_frame, text="Map T1", bg="#F472B6", fg="white", command=MapT1)
                                                                                       padx=5, pady=3, sticky=E + W)
 Button(scrollable_frame, text="Map T2", bg="#F472B6", fg="white", command=MapT2).grid(row=29, column=0, columnspan=2,
                                                                                       padx=5, pady=3, sticky=E + W)
+Button(scrollable_frame, text = "")
 # Un recuadro en el que muestre si se ejecuta una función correctamente o no.
 # ---------------------------------------------------------
 # NUEVA SECCIÓN: DEPARTURES & MERGE (A partir de la row 30)
@@ -587,19 +588,9 @@ Button(scrollable_frame, text="Night Aircrafts", bg="#F472B6", fg="white", comma
 # ---------------------------------------------------------
 # NUEVA SECCIÓN: NIGHT GATES & FREE GATES (A partir de row 35)
 # ---------------------------------------------------------
-def PlotDayOccupancyAction():
-    if bcn is None or bcn == 0 or bcn == -1:
-        messagebox.showwarning(title = "Aviso", message="Carga LEBL")
-        return
-    if not aircrafts:
-        messagebox.showwarning(title = "Aviso", message="Carga los aeropuertos")
-        return
-    ax = clear_ax()
-    lb.PlotDayOccupancy(bcn, aircrafts, ax)
-    draw_chart()
+
 # Botón para asignar puertas nocturnas a los aviones que duermen en el aeropuerto
 Button(scrollable_frame, text="Assign Night Gates", bg="#F472B6", fg="white", command=AssignNightGatesAction).grid(row=35, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
-Button(scrollable_frame,text="Plot Day Occupancy", bg="#F472B6", fg="white", command=PlotDayOccupancyAction).grid(row=38, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
 
 # Etiqueta y recuadro de texto para escribir el ID del avión que quieres liberar (ej: VLG123)
 freeGateLabel = Label(scrollable_frame, text="ID Avión a liberar:")
@@ -608,8 +599,25 @@ freeGateLabel.grid(row=36, column=0, padx=5, pady=5, sticky=E + W)
 freeGateEntry = Entry(scrollable_frame, width=12)
 freeGateEntry.grid(row=36, column=1, padx=5, pady=5, sticky=E + W)
 
+Label(scrollable_frame, text="Hora (hh:00): ").grid(row=38, column=0, padx=5, pady=5, sticky=E + W)
+hourEntry = Entry(scrollable_frame, width=12)
+hourEntry.insert(0, "08:00")
+hourEntry.grid(row=38, column=1, padx=5, pady=5, sticky=E + W)
+
+def PlotDayOccupancyAction():
+    if bcn is None or bcn == 0 or bcn == -1:
+        messagebox.showwarning(title = "Aviso", message="Carga LEBL")
+        return
+    if not aircrafts:
+        messagebox.showwarning(title = "Aviso", message="Carga los aeropuertos")
+        return
+    ax = clear_ax()
+    lb.PlotDayOccupancy(bcn, aircrafts)
+    draw_chart()
+
 # Botón para ejecutar la liberación de la puerta
 Button(scrollable_frame, text="Free Gate", bg="#F472B6", fg="white", command=FreeGateAction).grid(row=37, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
+Button(scrollable_frame,text="Plot Day Occupancy", bg="#F472B6", fg="white", command=PlotDayOccupancyAction).grid(row=39, column=0, columnspan=2, padx=5, pady=3, sticky=E + W)
 # Para mostrar los gráficos en la misma ventana
 canvas = FigureCanvasTkAgg(fig, master=right_panel)
 canvas.get_tk_widget().pack(fill="both", expand=True, padx=12, pady=12)
@@ -627,6 +635,7 @@ def _activar_scroll(event):
 
 def _desactivar_scroll(event):
     window.unbind_all("<MouseWheel>")
+
 
 
 # Vinculamos las funciones de activar y desactivar el scroll a los eventos de entrar y salir del área de los botones.
