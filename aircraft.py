@@ -82,8 +82,11 @@ def PlotAirlines(aircrafts,
         if airline not in cont:  # Sumamos 1 a la cantidad de vuelos de esa aerolínea en el diccionario cont, que tiene como clave el nombre de la aerolínea y como valor la cantidad de vuelos. Si la aerolínea no está en el diccionario, la añadimos con un valor inicial de 0.
             cont[airline] = 0
         cont[airline] = cont[airline] + 1
-    ax.bar(cont.keys(), cont.values(),
-           color='#32612d')  # Utilizamos el método bar para graficar un gráfico de barras, con las aerolíneas en el eje x y la cantidad de vuelos en el eje y. El color de las barras es #32612d.
+        # Ordenamos el diccionario por valores de mayor a menor y nos quedamos con los 10 primeros
+    top10 = dict(sorted(cont.items(), key=lambda x: x[1], reverse=True)[:10])
+
+        # Dibujamos el gráfico pasándole las claves, los valores y el color todo dentro del mismo paréntesis
+    ax.bar(top10.keys(), top10.values(), color='#32612d')
     ax.set_xlabel('Airlines')
     ax.set_ylabel('Flights')
     ax.set_title('Flights every airline')

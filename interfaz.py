@@ -701,7 +701,7 @@ def show_app():
     window.columnconfigure(2, weight=3)
 
     # PANEL IZQUIERDO (SCROLL)
-    LEFT_panel = Frame(window, width=280, bg=BG_DARK)
+    LEFT_panel = Frame(window, width=260, bg=BG_DARK)
     LEFT_panel.pack(side="left", fill="y", padx=10, pady=10)
 
     canvas_scroll = Canvas(LEFT_panel, width=240, bg=BG_DARK, highlightthickness=0)
