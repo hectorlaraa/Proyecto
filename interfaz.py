@@ -168,13 +168,30 @@ def Load():
 
 
 def Add():
-    new = ap.Airport(ICAOEntry.get(), float(latEntry.get()), float(lonEntry.get()))
+    # 1. Comprobamos que el ICAO no esté vacío
+    icao = ICAOEntry.get().strip()
+    if not icao:
+        messagebox.showwarning("Cuidado", "El campo ICAO no puede estar vacío.")
+        return
+
+    # 2. Comprobamos que Latitud y Longitud sean números válidos
+    try:
+        lat = float(latEntry.get())
+        lon = float(lonEntry.get())
+    except ValueError:
+        messagebox.showerror("Error", "La Latitud y Longitud deben ser números.\n(Asegúrate de no dejarlos en blanco).")
+        return
+
+    # 3. Si todo está bien, creamos y añadimos el aeropuerto
+    new = ap.Airport(icao, lat, lon)
     ap.SetSchengen(new)
+
     resultado = ap.AddAirport(airports, new)
+
     if resultado == 0:
-        messagebox.showinfo("Add Airport", f"Airport {ICAOEntry.get()} added!")
+        messagebox.showinfo("Add Airport", f"Airport {icao} added!")
     else:
-        messagebox.showerror("Add Airport", f"Error: Could not add airport {ICAOEntry.get()}.")
+        messagebox.showerror("Add Airport", f"Error: Could not add airport {icao}.")
 
 
 def Remove():

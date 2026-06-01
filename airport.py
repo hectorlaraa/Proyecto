@@ -91,21 +91,24 @@ def SaveSchengenAirports(airports, filename):   #Definimos una función que reci
     return 0
 
 
-def AddAirport(airports, new_airport):  #Definimos una función que recibe la lista de aeropuerto y uno nuevo, si no lo encuentra en la lista lo añade, pero si ya existe, no lo añade y devuelve un código de error (-1).
+def AddAirport(airports, new_airport):
     encontrado = False
     i = 0
     num_airports = len(airports)
 
-    while i < num_airports and not encontrado:  #La lógica que sigue el programa para determinar si el aeropuerto ya existe en la lista es recorrer la lista de aeropuertos y comparar el código ICAO de cada aeropuerto con el código ICAO del nuevo aeropuerto. Si encuentra una coincidencia, significa que el aeropuerto ya existe en la lista y se establece la variable "encontrado" como True. Si no encuentra ninguna coincidencia después de recorrer toda la lista, entonces "encontrado" permanece como False, lo que indica que el nuevo aeropuerto no está en la lista y puede ser añadido.
+    while i < num_airports and not encontrado:
         if airports[i].ICAO == new_airport.ICAO:
             encontrado = True
         else:
             i = i + 1
 
-    if encontrado == False:  #Solo añade el aeropuerto en caso de no encontrarlo en la lista.
+    if encontrado == False:
+        # Solo lo añade a la lista en memoria, cumpliendo exactamente el enunciado
         airports.append(new_airport)
         return 0
-
+    else:
+        # Devuelve error si el aeropuerto ya estaba en la lista
+        return -1
 
 def RemoveAirport(airport_list, code):  #Al igual que la función anterior, esta función recibe la lista de aeropuertos y el código del cual queremos eliminar, si lo encuentra lo elimina si no, nos avisa.
     encontrado = False
